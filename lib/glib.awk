@@ -29,6 +29,8 @@ BEGIN {
   negative["off"] = 1
   negative["false"] = 1
   negative["no"] = 1
+
+  config["transparent"] = color["black"]
 }
 
 # initialize a graphic buffer
@@ -54,6 +56,10 @@ function clearscr() {
   printf("\033[2J")
 }
 
+function transparent(col) {
+  config["transparent"] = col ? col : color["black"]
+}
+
 # reset graphic buffer to single color (default black)
 function clear(dst, col,   i, size) {
   size = dst["width"] * dst["height"]
@@ -62,10 +68,44 @@ function clear(dst, col,   i, size) {
     dst[i] = col ? col : color["black"]
 }
 
+# horizontal flip graphic buffer
+function hflip(src, dst,   w,h, x,y, sz,i) {
+  w = src["width"]
+  h = src["height"]
+  sz = h*w
+
+  # hflip src into data
+  for (y=0; y<h; y++)
+    for (x=0; x<w; x++)
+      data[(y*w)+x] = src[(h-1-y)*w+x]
+
+  # copy back data to dst
+  for (i=0; i<sz; i++) src[i] = data[i]
+  delete(data)
+}
+
+# vertical flip graphic buffer
+function vflip(src, dst,   w,h, x,y, sz,i) {
+  w = src["width"]
+  h = src["height"]
+  sz = h*w
+
+  # vflip src into data
+  for (y=0; y<h; y++)
+    for (x=0; x<w; x++)
+      data[(y*w)+x] = src[y*w+(w-1-x)]
+
+  # copy back data to dst
+  for (i=0; i<sz; i++) src[i] = data[i]
+  delete(data)
+}
+
 # draw graphic buffer to terminal
-function draw(scr, xpos, ypos,   screen, line, x,y, w,h, fg,bg, y_mul_w, y1_mul_w) {
+function draw(scr, xpos, ypos, cls,   screen, line, x,y, w,h, fg,bg, fgprev,bgprev, y_mul_w, y1_mul_w) {
   w = scr["width"]
   h = scr["height"]
+
+  fgprev = bgprev = 0
 
   # position of zero means center
   if (xpos == 0) xpos = (terminal["width"] - w) / 2
@@ -75,7 +115,7 @@ function draw(scr, xpos, ypos,   screen, line, x,y, w,h, fg,bg, y_mul_w, y1_mul_
   if (xpos < 0) xpos = (terminal["width"] - w + (xpos+1))
   if (ypos < 0) ypos = (terminal["height"] - h/2 + (ypos+1))
 
-  screen = ""
+  screen = cls ? "\033[2J" : ""
   for (y=0; y<h; y+=2) {
     y_mul_w = y*w
     y1_mul_w = (y+1)*w
@@ -89,7 +129,11 @@ function draw(scr, xpos, ypos,   screen, line, x,y, w,h, fg,bg, y_mul_w, y1_mul_
       bg = (y%2) ? 40 : (scr[y1_mul_w+x] > 7) ? scr[y1_mul_w+x] + 92 : scr[y1_mul_w+x] + 40
 
       # set forground/background colors and draw pixel(s)
-      line = line "\033[" fg ";" bg "m▀"
+      if ((fg != fgprev) || (bg != bgprev)) {
+        line = line "\033[" fg ";" bg "m▀"
+        fgprev = fg
+        bgprev = bg
+      } else line = line "▀"
     }
 
     screen = screen line
@@ -106,11 +150,12 @@ function copy(dst, src, xpos, ypos, transparent,   srcw,srch, dstw, dsth, x,y, t
   dstw = dst["width"]
   dsth = dst["height"]
 
-  t = transparent ? transparent : color["black"]
+  t = transparent ? transparent : config["transparent"]
 
   for (y=0; y<srch; y++) {
     # clip image off top/bottom
-    if ( ((ypos + y) >= dsth) || ((ypos + y) < 0) ) continue
+    if ((ypos + y) >= dsth) break
+    if ((ypos + y) < 0) continue
     srcw_mul_y = srcw * y
     yposy_mul_dstw = (ypos + y) * dstw
 
@@ -118,7 +163,8 @@ function copy(dst, src, xpos, ypos, transparent,   srcw,srch, dstw, dsth, x,y, t
       xposx = xpos + x
 
       # clip image on left/right
-      if ( (xposx >= dstw) || (xposx < 0) ) continue
+      if (xposx >= dstw) break
+      if (xposx < 0) continue
 
       # draw non-transparent pixel or else background
       col = src[(srcw_mul_y)+x]
