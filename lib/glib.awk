@@ -56,6 +56,7 @@ function clearscr() {
   printf("\033[2J")
 }
 
+# set default transparent value
 function transparent(col) {
   config["transparent"] = col ? col : color["black"]
 }
@@ -63,9 +64,10 @@ function transparent(col) {
 # reset graphic buffer to single color (default black)
 function clear(dst, col,   i, size) {
   size = dst["width"] * dst["height"]
+  col = col ? col : color["black"]
 
   for (i=0; i<size; i++)
-    dst[i] = col ? col : color["black"]
+    dst[i] = col
 }
 
 # horizontal flip graphic buffer
@@ -194,6 +196,8 @@ function load(dst, fname,   w, h, len, data, x, y) {
       dst[(y*w)+x] = strtonum("0x"substr(data[y], x+1, 1)) % 16
     }
   }
+
+  delete(data)
 }
 
 # save graphic buffer to file

@@ -19,7 +19,7 @@ BEGIN {
   princess = 2
 
   # initialize myscr buffer with size
-  init(myscr, 150, 80)
+  init(myscr, 160, 100)
 
   myspr[plumber]["x"] = 0
   myspr[lizard]["x"] = 0
@@ -63,15 +63,16 @@ BEGIN {
   cls = 1
 
 #  while ("awk" != "difficult") {
+#    framenr++
   while (framenr++ < maxframes) {
     # determine location of myscr buffer
-    switch ((framenr/100) % 5) {
-      case 0: cls = 1; myscr["x"] =  0; myscr["y"] =  0; break; # ( 0, 0) center
-      case 1: cls = 1; myscr["x"] =  1; myscr["y"] =  2; break; # ( 1, 1) top left
-      case 2: cls = 1; myscr["x"] = -1; myscr["y"] = -1; break; # (-1,-1) bottom right
-      case 3: cls = 1; myscr["x"] = -1; myscr["y"] =  2; break; # (-1, 1) top right
-      case 4: cls = 1; myscr["x"] =  1; myscr["y"] = -1; break; # ( 1,-1) bottom left
-    }
+#    switch ((framenr/100) % 5) {
+#      case 0: cls = 1; myscr["x"] =  0; myscr["y"] =  0; break; # ( 0, 0) center
+#      case 1: cls = 1; myscr["x"] =  1; myscr["y"] =  2; break; # ( 1, 1) top left
+#      case 2: cls = 1; myscr["x"] = -1; myscr["y"] = -1; break; # (-1,-1) bottom right
+#      case 3: cls = 1; myscr["x"] = -1; myscr["y"] =  2; break; # (-1, 1) top right
+#      case 4: cls = 1; myscr["x"] =  1; myscr["y"] = -1; break; # ( 1,-1) bottom left
+#    }
 
     printf("\033[H")
 #    printf("term: %dx%d\n", terminal["width"], terminal["height"]*2)
