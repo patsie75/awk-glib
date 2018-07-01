@@ -205,80 +205,55 @@ function draw(scr, xpos, ypos, cls,   screen, line, x,y, w,h, fg,bg, fgprev,bgpr
 }
 
 # copy graphic buffer to another graphic buffer (with transparency, and edge clipping)
-function copy(dst, src, xpos, ypos, width, height, transparent,   srcw,srch, dstw,dsth, w,h, x,y, t, col, srcw_mul_y, yposy_mul_dstw, xposx) {
+# usage: dst, src, [dstx, dsty, [srcx, srcy, [srcw, srch, [transparent] ] ] ]
+function copy(dst, src, dstx, dsty, srcx, srcy, srcw, srch, transparent,   dx,dy, dw,dh, sx,sy, sw,sh, x,y, w,h, t, pix, sw_mul_y, ydy_mul_dw, xdx) {
+  dw = dst["width"]
+  dh = dst["height"]
+  sw = src["width"]
+  sh = src["height"]
+
   if ("animation" in src) {
-    srcw = src["animation"]["width"]
-    srch = src["animation"]["height"]
-    srcx = src["animation"]["x"]
-    srcy = src["animation"]["y"]
+    dx = int(src["x"])
+    dy = int(src["y"])
+    sx = int(src["animation"]["x"])
+    sy = int(src["animation"]["y"])
+    w = src["animation"]["width"]
+    h = src["animation"]["height"]
   } else {
-    srcw = src["width"]
-    srch = src["height"]
-    srcx = 0
-    srcy = 0
+    dx = int(src["x"])
+    dy = int(src["y"])
+    sx = 0
+    sy = 0
+    w = src["width"]
+    h = src["height"]
   }
+  if (length(dstx)) dx = dstx
+  if (length(dsty)) dy = dsty
+  if (length(srcx)) sx = srcx
+  if (length(srcy)) sy = srcy
+  if (length(srcw)) w = ((srcw > 0) && (srcw < src["width"])) ? srcw : w
+  if (length(srch)) h = ((srch > 0) && (srch < src["height"])) ? srch : h
 
-  dstw = dst["width"]
-  dsth = dst["height"]
+  if (sprintf("%s", transparent)) t = transparent
+  else if ("transparent" in src) t = src["transparent"]
+  else if ("transparent" in config) t = glib["transparent"]
 
-  w = ((width  > 0) && (width  < srcw)) ? width  : srcw
-  h = ((height > 0) && (height < srch)) ? height : srch
-
-  if ("transparent" in src) t = src["transparent"]
-  else if ("transparent" in config) t = config["transparent"]
-  else t = transparent
-
-  for (y=srcy; y<(srcy+h); y++) {
+  for (y=sy; y<(sy+h); y++) {
     # clip image off top/bottom
-    if ((ypos + y) >= dsth) break
-    if ((ypos + y) < 0) continue
-    srcw_mul_y = srcw * y
-    yposy_mul_dstw = (ypos + y) * dstw
-
-    for (x=srcx; x<(srcx+w); x++) {
-      xposx = xpos + x
+    if ((dy + y) >= dh) break
+    if ((dy + y) < 0) continue
+    sw_mul_y = sw * y
+    ydy_mul_dw = (y - sy + dy) * dw
+    for (x=sx; x<(sx+w); x++) {
+      xdx = x - sx + dx
 
       # clip image on left/right
-      if (xposx >= dstw) break
-      if (xposx < 0) continue
+      if (xdx >= dw) break
+      if (xdx < 0) continue
 
       # draw non-transparent pixel or else background
-      col = src[(srcw_mul_y)+x]
-      dst[yposy_mul_dstw + xposx] = ((col == t) || (col == "None")) ? dst[yposy_mul_dstw + xposx] : col
-    }
-  }
-}
-
-# copy graphic buffer to another graphic buffer (with transparency, and edge clipping)
-function copy2(src, dst, srcx, srcy, width, height, dstx, dsty, transparent,   dstw,dsth, w,h, x,y, t, pix, srcw_mul_y, yposy_mul_dstw, xposx) {
-  srcw = src["width"]
-  srch = src["height"]
-  dstw = dst["width"]
-  dsth = dst["height"]
-
-  w = ((width  > 0) && (width  < src["width"]))  ? width  : src["width"]
-  h = ((height > 0) && (height < src["height"])) ? height : src["height"]
-
-  if ("transparent" in src) t = src["transparent"]
-  else if ("transparent" in config) t = config["transparent"]
-  else t = transparent
-
-  for (y=srcy; y<(srcy+h); y++) {
-    # clip image off top/bottom
-    if ((dsty + y) >= dsth) break
-    if ((dsty + y) < 0) continue
-    srcw_mul_y = srcw * y
-    ydsty_mul_dstw = (y - srcy + dsty) * dstw
-    for (x=srcx; x<(srcx+w); x++) {
-      xdstx = x - srcx + dstx
-
-      # clip image on left/right
-      if (xdstx >= dstw) break
-      if (xdstx < 0) continue
-
-      # draw non-transparent pixel or else background
-      pix = src[(srcw_mul_y)+x]
-      dst[ydsty_mul_dstw + xdstx] = ((pix == t) || (pix == "None")) ? dst[ydsty_mul_dstw + xdstx] : pix
+      pix = src[sw_mul_y + x]
+      dst[ydy_mul_dw + xdx] = ((pix == t) || (pix == "None")) ? dst[ydy_mul_dw + xdx] : pix
     }
   }
 }
@@ -288,6 +263,16 @@ function chksize(width, height) {
     printf("Your terminal doesn't have enough resolution (%dx%d < %dx%d).\nPlease choose a smaller font or resize your terminal\n", terminal["width"], terminal["height"], width, (height+1)/2)
     exit(1)
   }
+}
+
+function centerx(src, dst) {
+  if ("animation" in src) return( int((dst["width"] - src["animation"]["width"]) / 2) )
+  else return( int((dst["width"] - src["width"]) / 2) )
+}
+
+function centery(src, dst) {
+  if ("animation" in src) return( int((dst["height"] - src["animation"]["height"]) / 2) )
+  else return( int((dst["height"] - src["height"]) / 2) )
 }
 
 function move(src) {

@@ -3,8 +3,8 @@
 @include "lib/glib.awk"
 
 BEGIN {
-  scrwidth = 54
-  scrheight = 60
+  scrwidth = 120
+  scrheight = 100
 
   # bail out if terminal isn't big enough
   chksize(scrwidth, scrheight)
@@ -17,6 +17,7 @@ BEGIN {
 
   # load spritemap
   loadxpm2(scott, "gfx/scottpilgrim_spritemap.xpm2")
+  loadxpm2(skyline, "gfx/skyline2.xpm2")
 
   # set animation parameters
   scott["animation"]["last"] = 0
@@ -30,18 +31,33 @@ BEGIN {
   scott["animation"]["dx"] = 1
   scott["animation"]["dy"] = 0
 
+  init(background, skyline["width"]*2, skyline["height"])
+  copy(background, skyline)
+  copy(background, skyline, skyline["width"]-1)
+
+  background["x"] = 0
+  background["y"] = 0
+  background["dx"] = -3
+  background["dy"] = 0
+
   # set numer of frames to draw and target FPS
-  maxframes = 1000
+  maxframes = 400
   targetfps = 10
 
   # main loop
   for (framenr=0; framenr<maxframes; framenr++) {
     printf("\033[H")
-    clear(myscr, color["brightblue"])
+    #clear(myscr, color["brightblue"])
+
+    # move background and reset when limit reached
+    background["x"] += background["dx"]
+    if (background["x"] <= (skyline["width"]*-1))
+      background["x"] += skyline["width"]
+    copy(myscr, background)
 
     # do animation of scott and copy sprite to myscr buffer
     animate(scott)
-    copy2(scott, myscr, scott["animation"]["x"],scott["animation"]["y"], scott["animation"]["width"],scott["animation"]["height"], 0,0)
+    copy(myscr, scott, centerx(scott,myscr), myscr["height"]-scott["animation"]["height"])
 
     # draw myscr buffer to terminal
     draw(myscr, 0,0)
@@ -60,7 +76,7 @@ BEGIN {
   }
 
   # draw final status bar and turn on cursor again
-  printf("\033[Hframe: %4d/%4d size: %dx%d fps: %5.2f avg: %5.2f\033[K\n", framenr, maxframes, myscr["width"], myscr["height"], frame/(now-then), framenr/(now-start))
+  printf("\033[Hframe: %4d/%4d size: %dx%d fps: %5.2f avg: %5.2f (target: %.2f)\033[K\n", framenr, maxframes, myscr["width"], myscr["height"], frame/(now+0.01-then), framenr/(now-start), targetfps)
   cursor("on")
 }
 
