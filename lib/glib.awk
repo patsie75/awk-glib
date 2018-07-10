@@ -164,13 +164,13 @@ function draw(scr, xpos, ypos, cls,   screen, line, x,y, w,h, fg,bg, fgprev,bgpr
 
     for (x=0; x<w; x++) {
       if (substr(scr[y_mul_w+x],1,1) == "#")
-        #fg = "38;2;" strtonum("0x"substr(scr[y_mul_w+x],2,2)) ";" strtonum("0x"substr(scr[y_mul_w+x],4,2)) ";" strtonum("0x"substr(scr[y_mul_w+x],6,2))
-        fg = "38;2;" sprintf("%d", "0x"substr(scr[y_mul_w+x],2,2)) ";" sprintf("%d", "0x"substr(scr[y_mul_w+x],4,2)) ";" sprintf("%d", "0x"substr(scr[y_mul_w+x],6,2))
+        fg = "38;2;" int("0x"substr(scr[y_mul_w+x],2,2)) ";" int("0x"substr(scr[y_mul_w+x],4,2)) ";" int("0x"substr(scr[y_mul_w+x],6,2))
       else
         fg = (scr[y_mul_w+x] > 7) ? scr[y_mul_w+x] + 82 : scr[y_mul_w+x] + 30
-      # for odd-size pictures, add black (bg) pixel at bottom
+
+      # for odd-height pictures, add black (bg) pixel at bottom
       if (substr(scr[y1_mul_w+x],1,1) == "#")
-        bg = (y%2) ? 40 : "48;2;" sprintf("%d", "0x"substr(scr[y1_mul_w+x],2,2)) ";" sprintf("%d", "0x"substr(scr[y1_mul_w+x],4,2)) ";" sprintf("%d", "0x"substr(scr[y1_mul_w+x],6,2))
+        bg = (y%2) ? 40 : "48;2;" int("0x"substr(scr[y1_mul_w+x],2,2)) ";" int("0x"substr(scr[y1_mul_w+x],4,2)) ";" int("0x"substr(scr[y1_mul_w+x],6,2))
       else
         bg = (y%2) ? 40 : (scr[y1_mul_w+x] > 7) ? scr[y1_mul_w+x] + 92 : scr[y1_mul_w+x] + 40
 
@@ -352,7 +352,7 @@ function load(dst, fname,   w, h, len, data, x, y) {
   for (y=0; y<h; y++) {
     for (x=0; x<w; x++) {
       # make sure data is in correct range/format
-      dst[(y*w)+x] = sprintf("%d", "0x"substr(data[y], x+1, 1)) % 16
+      dst[(y*w)+x] = int("0x"substr(data[y], x+1, 1)) % 16
     }
   }
 
