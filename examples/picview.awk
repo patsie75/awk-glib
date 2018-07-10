@@ -1,8 +1,5 @@
-#!/usr/bin/gawk -f
 ## Sample ASCII/ANSI picture viewer using awk-glib
 # requirements are an installed version of ImageMagick (convert) and sed
-
-@include "lib/glib.awk"
 
 BEGIN {
   # get terminal width and height

@@ -28,12 +28,11 @@ function timex() {
 function fps(f,   now, i) {
   now = timex()
 
-  i = sprintf("%0.2f", (1/f)-(now-glib["fps"]["last"]))
-  if (i > 0) {
-    system("sleep " i)
-  }
+  i = (1/f)-(now-glib["fps","last"])
+  if (i > 0)
+    system(sprintf("sleep %0.2f", i))
 
-  glib["fps"]["last"] = timex()
+  glib["fps","last"] = timex()
 }
 
 BEGIN {
@@ -121,7 +120,7 @@ function hflip(src, dst,   w,h, x,y, sz,i) {
 
   # copy back data to dst
   for (i=0; i<sz; i++) src[i] = data[i]
-  delete(data)
+  delete data
 }
 
 # vertical flip graphic buffer
@@ -137,7 +136,7 @@ function vflip(src, dst,   w,h, x,y, sz,i) {
 
   # copy back data to dst
   for (i=0; i<sz; i++) src[i] = data[i]
-  delete(data)
+  delete data
 }
 
 # draw graphic buffer to terminal
@@ -165,12 +164,13 @@ function draw(scr, xpos, ypos, cls,   screen, line, x,y, w,h, fg,bg, fgprev,bgpr
 
     for (x=0; x<w; x++) {
       if (substr(scr[y_mul_w+x],1,1) == "#")
-        fg = "38;2;" strtonum("0x"substr(scr[y_mul_w+x],2,2)) ";" strtonum("0x"substr(scr[y_mul_w+x],4,2)) ";" strtonum("0x"substr(scr[y_mul_w+x],6,2))
+        #fg = "38;2;" strtonum("0x"substr(scr[y_mul_w+x],2,2)) ";" strtonum("0x"substr(scr[y_mul_w+x],4,2)) ";" strtonum("0x"substr(scr[y_mul_w+x],6,2))
+        fg = "38;2;" sprintf("%d", "0x"substr(scr[y_mul_w+x],2,2)) ";" sprintf("%d", "0x"substr(scr[y_mul_w+x],4,2)) ";" sprintf("%d", "0x"substr(scr[y_mul_w+x],6,2))
       else
         fg = (scr[y_mul_w+x] > 7) ? scr[y_mul_w+x] + 82 : scr[y_mul_w+x] + 30
       # for odd-size pictures, add black (bg) pixel at bottom
       if (substr(scr[y1_mul_w+x],1,1) == "#")
-        bg = (y%2) ? 40 : "48;2;" strtonum("0x"substr(scr[y1_mul_w+x],2,2)) ";" strtonum("0x"substr(scr[y1_mul_w+x],4,2)) ";" strtonum("0x"substr(scr[y1_mul_w+x],6,2))
+        bg = (y%2) ? 40 : "48;2;" sprintf("%d", "0x"substr(scr[y1_mul_w+x],2,2)) ";" sprintf("%d", "0x"substr(scr[y1_mul_w+x],4,2)) ";" sprintf("%d", "0x"substr(scr[y1_mul_w+x],6,2))
       else
         bg = (y%2) ? 40 : (scr[y1_mul_w+x] > 7) ? scr[y1_mul_w+x] + 92 : scr[y1_mul_w+x] + 40
 
@@ -206,19 +206,19 @@ function draw(scr, xpos, ypos, cls,   screen, line, x,y, w,h, fg,bg, fgprev,bgpr
 
 # copy graphic buffer to another graphic buffer (with transparency, and edge clipping)
 # usage: dst, src, [dstx, dsty, [srcx, srcy, [srcw, srch, [transparent] ] ] ]
-function copy(dst, src, dstx, dsty, srcx, srcy, srcw, srch, transparent,   dx,dy, dw,dh, sx,sy, sw,sh, x,y, w,h, t, pix, sw_mul_y, ydy_mul_dw, xdx) {
+function copy(dst, src, dstx, dsty, srcx, srcy, srcw, srch, transp,   dx,dy, dw,dh, sx,sy, sw,sh, x,y, w,h, t, pix, sw_mul_y, ydy_mul_dw, xdx) {
   dw = dst["width"]
   dh = dst["height"]
   sw = src["width"]
   sh = src["height"]
 
-  if ("animation" in src) {
+  if (("animation","x") in src) {
     dx = int(src["x"])
     dy = int(src["y"])
-    sx = int(src["animation"]["x"])
-    sy = int(src["animation"]["y"])
-    w = src["animation"]["width"]
-    h = src["animation"]["height"]
+    sx = int(src["animation","x"])
+    sy = int(src["animation","y"])
+    w = src["animation","width"]
+    h = src["animation","height"]
   } else {
     dx = int(src["x"])
     dy = int(src["y"])
@@ -234,9 +234,9 @@ function copy(dst, src, dstx, dsty, srcx, srcy, srcw, srch, transparent,   dx,dy
   if (length(srcw)) w = ((srcw > 0) && (srcw < src["width"])) ? srcw : w
   if (length(srch)) h = ((srch > 0) && (srch < src["height"])) ? srch : h
 
-  if (sprintf("%s", transparent)) t = transparent
+  if (sprintf("%s", transp)) t = transp
   else if ("transparent" in src) t = src["transparent"]
-  else if ("transparent" in config) t = glib["transparent"]
+  else if ("transparent" in glib) t = glib["transparent"]
 
   for (y=sy; y<(sy+h); y++) {
     # clip image off top/bottom
@@ -266,12 +266,12 @@ function chksize(width, height) {
 }
 
 function centerx(src, dst) {
-  if ("animation" in src) return( int((dst["width"] - src["animation"]["width"]) / 2) )
+  if (("animation","x") in src) return( int((dst["width"] - src["animation","width"]) / 2) )
   else return( int((dst["width"] - src["width"]) / 2) )
 }
 
 function centery(src, dst) {
-  if ("animation" in src) return( int((dst["height"] - src["animation"]["height"]) / 2) )
+  if (("animation","x") in src) return( int((dst["height"] - src["animation","height"]) / 2) )
   else return( int((dst["height"] - src["height"]) / 2) )
 }
 
@@ -292,45 +292,44 @@ function move(src) {
 ## spr.dx		(next row frame delta)
 ## spr.dy		(next col frame delta)
 function animate(src,   now) {
-  if ("animation" in src) {
+  if (("animation","x") in src) {
     now = timex()
 
-    if ( (now - src["animation"]["last"]) >= src["animation"]["interval"] ) {
-      src["animation"]["last"] = now
+    if ( (now - src["animation","last"]) >= src["animation","interval"] ) {
+      src["animation","last"] = now
 
-      switch(src["animation"]["type"]) {
-        case "row":
-          src["animation"]["x"] += (src["animation"]["dx"] * src["animation"]["width"])
+      if (src["animation","type"] == "row") {
+          src["animation","x"] += (src["animation","dx"] * src["animation","width"])
 
-          if (src["animation"]["x"] > (src["width"] - src["animation"]["width"])) {
-            if (src["animation"]["loop"] == "loop") src["animation"]["x"] = 0
-            if (src["animation"]["loop"] == "bounce") { src["animation"]["dx"] *= -1; src["animation"]["x"] += (src["animation"]["dx"] * src["animation"]["width"]) }
+          if (src["animation","x"] > (src["width"] - src["animation","width"])) {
+            if (src["animation","loop"] == "loop") src["animation","x"] = 0
+            if (src["animation","loop"] == "bounce") { src["animation","dx"] *= -1; src["animation","x"] += (src["animation","dx"] * src["animation","width"]) }
           }
 
-          if (src["animation"]["x"] < 0) {
-            if (src["animation"]["loop"] == "loop") src["animation"]["x"] = src["width"] - src["animation"]["width"]
-            if (src["animation"]["loop"] == "bounce") { src["animation"]["dx"] *= -1; src["animation"]["x"] = 0 }
+          if (src["animation","x"] < 0) {
+            if (src["animation","loop"] == "loop") src["animation","x"] = src["width"] - src["animation","width"]
+            if (src["animation","loop"] == "bounce") { src["animation","dx"] *= -1; src["animation","x"] = 0 }
           }
-          break
-
-        case "col":
-          src["animation"]["x"] += (src["animation"]["dx"] * src["animation"]["width"])
-
-          if (src["animation"]["y"] > (src["height"] - src["animation"]["height"])) {
-            if (src["animation"]["loop"] == "loop") src["animation"]["y"] = 0
-            if (src["animation"]["loop"] == "bounce") { src["animation"]["dy"] *= -1; src["animation"]["y"] += (src["animation"]["dy"] * src["animation"]["height"]) }
-          }
-
-          if (src["animation"]["y"] < 0) {
-            if (src["animation"]["loop"] == "loop") src["animation"]["y"] = src["height"] - src["animation"]["height"]
-            if (src["animation"]["loop"] == "bounce") { src["animation"]["dy"] *= -1; src["animation"]["y"] = 0 }
-          }
-          break
-
-        case "rowcol":
-        case "colrow":
-          break
       }
+
+      if (src["animation","type"] == "col") {
+          src["animation","x"] += (src["animation","dx"] * src["animation","width"])
+
+          if (src["animation","y"] > (src["height"] - src["animation","height"])) {
+            if (src["animation","loop"] == "loop") src["animation","y"] = 0
+            if (src["animation","loop"] == "bounce") { src["animation","dy"] *= -1; src["animation","y"] += (src["animation","dy"] * src["animation","height"]) }
+          }
+
+          if (src["animation","y"] < 0) {
+            if (src["animation","loop"] == "loop") src["animation","y"] = src["height"] - src["animation","height"]
+            if (src["animation","loop"] == "bounce") { src["animation","dy"] *= -1; src["animation","y"] = 0 }
+          }
+      }
+
+      #  case "rowcol":
+      #  case "colrow":
+      #    break
+      #}
     }
   }
 }
@@ -353,11 +352,11 @@ function load(dst, fname,   w, h, len, data, x, y) {
   for (y=0; y<h; y++) {
     for (x=0; x<w; x++) {
       # make sure data is in correct range/format
-      dst[(y*w)+x] = strtonum("0x"substr(data[y], x+1, 1)) % 16
+      dst[(y*w)+x] = sprintf("%d", "0x"substr(data[y], x+1, 1)) % 16
     }
   }
 
-  delete(data)
+  delete data
 }
 
 # save graphic buffer to file
@@ -365,7 +364,7 @@ function save(src, fname,   w, h, x, y, col, line) {
   w = src["width"]
   h = src["height"]
 
-  printf("# Created on %s by awk-glib\n", strftime()) >fname
+  printf("# Created by awk-glib\n") >fname
   for (y=0; y<h; y++) {
     line = ""
     for (x=0; x<w; x++) {
@@ -431,7 +430,7 @@ function loadxpm2(dst, fname,   w,h, nrcolors,charsppx, col,color,data, i,pix) {
   dst["width"] = w
   dst["height"] = h
 
-  delete(color)
+  delete color
   return(1)
 }
 
@@ -462,7 +461,7 @@ function savexpm2(src, fname,   w,h,sz, x,y, i,j,m,n, c,col, map, nrcolors, char
 
   # calculate the number of characters we need per pixel
   charsppx = 1
-  while ( (length(charmap)**charsppx) < nrcolors) charsppx++
+  while ( (length(charmap)^charsppx) < nrcolors) charsppx++
   #printf("savexpm2(): using %d characters per pixel\n", charsppx)
 
   i = 0
