@@ -67,7 +67,10 @@ BEGIN {
   negative["false"] = 1
   negative["no"] = 1
 
-  config["transparent"] = color["black"]
+  glib["transparent"] = color["black"]
+
+  glib["pi"] = atan2(0, -1)
+  for (i=0; i<360; i++) glib["sin",i] = sin((glib["pi"]*i)/180) * 255
 }
 
 # initialize a graphic buffer
@@ -238,6 +241,24 @@ function copy(dst, src, dstx, dsty, srcx, srcy, srcw, srch, transp,   dx,dy, dw,
   else if ("transparent" in src) t = src["transparent"]
   else if ("transparent" in glib) t = glib["transparent"]
 
+#  for (y=sy; y<(sy+h); y++) {
+#    # clip image off top/bottom
+#    if ((dy + y) >= dh) break
+#    if ((dy + y) < 0) continue
+#    sw_mul_y = sw * y
+#    ydy_mul_dw = (y - sy + dy) * dw
+#    for (x=sx; x<(sx+w); x++) {
+#      xdx = x - sx + dx
+#
+#      # clip image on left/right
+#      if (xdx >= dw) break
+#      if (xdx < 0) continue
+#
+#      # draw non-transparent pixel or else background
+#      pix = src[sw_mul_y + x]
+#      dst[ydy_mul_dw + xdx] = ((pix == t) || (pix == "None")) ? dst[ydy_mul_dw + xdx] : pix
+#    }
+#  }
   for (y=sy; y<(sy+h); y++) {
     # clip image off top/bottom
     if ((dy + y) >= dh) break
@@ -266,12 +287,12 @@ function chksize(width, height) {
 }
 
 function centerx(src, dst) {
-  if (("animation","x") in src) return( int((dst["width"] - src["animation","width"]) / 2) )
+  if (("animation","width") in src) return( int((dst["width"] - src["animation","width"]) / 2) )
   else return( int((dst["width"] - src["width"]) / 2) )
 }
 
 function centery(src, dst) {
-  if (("animation","x") in src) return( int((dst["height"] - src["animation","height"]) / 2) )
+  if (("animation","height") in src) return( int((dst["height"] - src["animation","height"]) / 2) )
   else return( int((dst["height"] - src["height"]) / 2) )
 }
 
@@ -310,10 +331,12 @@ function animate(src,   now) {
             if (src["animation","loop"] == "loop") src["animation","x"] = src["width"] - src["animation","width"]
             if (src["animation","loop"] == "bounce") { src["animation","dx"] *= -1; src["animation","x"] = 0 }
           }
+
+          #printf("type: %s, loop: %s, x: %04d, y: %04d\n", src["animation","type"], src["animation","loop"], src["animation","x"], src["animation","y"])
       }
 
       if (src["animation","type"] == "col") {
-          src["animation","x"] += (src["animation","dx"] * src["animation","width"])
+          src["animation","y"] += (src["animation","dy"] * src["animation","height"])
 
           if (src["animation","y"] > (src["height"] - src["animation","height"])) {
             if (src["animation","loop"] == "loop") src["animation","y"] = 0
@@ -324,6 +347,8 @@ function animate(src,   now) {
             if (src["animation","loop"] == "loop") src["animation","y"] = src["height"] - src["animation","height"]
             if (src["animation","loop"] == "bounce") { src["animation","dy"] *= -1; src["animation","y"] = 0 }
           }
+
+          printf("type: %s, loop: %s, x: %04d, y: %04d\n", src["animation","type"], src["animation","loop"], src["animation","x"], src["animation","y"])
       }
 
       #  case "rowcol":
@@ -333,6 +358,21 @@ function animate(src,   now) {
     }
   }
 }
+
+# font.chars = character list of src-font
+function write(dst, src, dstx,dsty, msg,   i, c, l, fw,fh) {
+  l = length(msg)
+  fw = int(src["width"] /  length(src["font","charset"]))
+  fh = src["height"]
+
+  for (i=0; i<l; i++) {
+    chr = substr(msg, i+1, 1)
+    idx = index(src["font","charset"], chr)-1
+    if (idx >= 0)
+      copy(dst, src, dstx+(i*fw),dsty, (idx*fw),0, fw,fh)
+  }
+}
+
 
 # load graphic from file
 function load(dst, fname,   w, h, len, data, x, y) {
